@@ -1,58 +1,56 @@
+N = 1000  # longitud de la cinta, inicializar a un valor grande
 
-def turing_M (state = None, #estados de la maquina de turing
-              blank = None, #simbolo blanco de el alfabeto dela cinta
-              rules = [],   #reglas de transicion
-              tape = [],    #cinta
-              final = None,  #estado valido y/o final
-              pos = 0):#posicion siguiente de la maquina de turing
 
-    st = state
-    if not tape: tape = [blank]
-    if pos <0 : pos += len(tape)
-    if pos >= len(tape) or pos < 0 : raise Error ("Se inicializa mal la posicion")
-    
-    rules = dict(((s0, v0), (v1, dr, s1)) for (s0, v0, v1, dr, s1) in rules)
-    """
-Estado	Símbolo leído	Símbolo escrito	       Mov. 	Estado sig.
-  p(s0)	       1(v0)	         x(v1)         R(dr)	     p(s1)
-"""
-    while True:
-        print (st, '\t', end=" ")
-        for i, v in enumerate(tape):
-             if i==pos: print ("[%s]"%(v,),end=" ")
-             else: print (v, end=" ")
-        print()
-        
-        if st == final: break
-        if (st, tape[pos]) not in rules: break
-        
-        (v1,dr,s1) = rules [(st, tape[pos])]
-        tape[pos]=v1 #rescribe el simbolo de la cinta
-    
-    #movimiento del cabezal
-        if dr == 'left':
-            if pos > 0: pos -= 1
-            else: tape.insert(0, blank)
-        if dr == 'right':
-            pos += 1
-            if pos >= len(tape): tape.append(blank)
-        st = s1
+class TuringMachine:
+    '''
+    inicializar la máquina de Turing, lee el programa y la entrada
+    '''
 
-print("Maquina de turing Test")
+    def __init__(self, program, input, state=0):  #datos requeridos program(almacena reglas de la suma) | input(almacenara los datos a sumar)
+                                                  #estado en el que se encuentra el cabezal = 0 ya que no contiene acciones )
+        self.trf = {} #Se empieza a realizar la conversion de los numeros
+        self.state = str (state) #crear objeto state
+        self.tape = ''.join (['_'] * N)
+        self.head = N // 2  # el cabezal lo situamos en el centro
+        self.tape = self.tape[:self.head] + input + self.tape[self.head:] #instanciamos el objeto tape en la maquina de turing
+        for line in program.splitlines ():
+            s, a, r, d, s1 = line.split (' ')
+            # s = dato leido | a = posicion del apuntador en la cinta | r = reglas | d=direccion | Estado = s1
+            self.trf[s, a] = (r, d, s1)
 
-#se puede cambiar las reglasde transicion para otra maquina de turing
+    '''
+    paso a paso que llevara el programa
+    '''
 
-valores = input('Ingrese Cadena de Valores' + "\t" )
+    def step(self):
+        if self.state != 'H': # si el estado es diferente de H
+            a = self.tape[self.head]
+            action = self.trf.get ((self.state, a))
+            if action:
+                r, d, s1 = action #estado es igual a la action
+                self.tape = self.tape[:self.head] + r + self.tape[self.head + 1:]
+                if d != '*':
+                    self.head = self.head + (1 if d == 'r' else -1)
+                self.state = s1
+                print (self.tape.replace ('_', ''), self.state)
 
-turing_M (state = 'p', #estado inicial de la maquina de turing
-              blank = 'b', #simbolo blanco de el alfabeto dela cinta
-              tape = list(valores),#inserta los elementos en la cinta
-              final = 'q',  #estado valido y/o final
-              rules = map(tuple,#reglas de transicion
-                          [
-                          "p 1 x right p".split(),
-                          "p 0 0 right p".split(),
-                          "p b b right q".split(),
-                          ]   
-                         )
-             )
+    '''
+    run a program
+    '''
+#--------------------------------------------------------------------- Previene bucle infinito
+
+    def run(self, max_iter=9999):
+        iter = 0
+        while self.state != 'H' and iter < max_iter:
+            self.step ()
+            iter += 1
+        print (self.tape.replace ('_', ''), self.state)
+
+#----------------------------------------------------------------------
+
+input = input("Ingresa los numeros binarios a sumar separados por un '_'" + "\t") #ingreso de numeros binarios a sumar
+program = open('program.txt').read() #lectura las reglas almacenadas en el archivo .txt
+tm = TuringMachine(program, input) #analiza/valida las reglas con los datos de entrada
+tm.run()   # corre el programa
+# 10010 H
+
